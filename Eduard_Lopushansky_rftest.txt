@@ -1,0 +1,48 @@
+*** Settings ***
+Documentation  This suite is testing a different password combintaions
+Library         Selenium2Library
+Library         BuiltIn
+
+Suite Setup      Open Browser    ${LOGIN URL}    ${BROWSER}
+Suite Teardown   Close Browser
+Test Template    Passwords Combinations
+
+*** Variables ***
+#${LOGIN URL}    http://acme-gizmo.us/changepwd.php
+${LOGIN URL}    http://crystaltest.com/bg/changepwd.php
+${DEFAULT_PASSWORD}  Earth15
+${BROWSER}           Chrome
+
+#Valid Current Password = VC, Invalid Current password = IC, Valid New Password = VN, Invalid New Password = IN
+
+*** Test Cases ***     Current Password     New Password         Confirm Password      Expected Message
+1VC, VN 8 letters       ${DEFAULT_PASSWORD}  Earth151             Earth151              Password changed: 'Earth151'
+2VC, VN 4 letters       ${DEFAULT_PASSWORD}  Ea51                 Ea51                  Password changed: 'Ea51'
+3VC, Special Chars      ${DEFAULT_PASSWORD}  we%!_-               we%!_-                Error: new password must contain at least one capital letter
+4Same Current and New   ${DEFAULT_PASSWORD}  ${DEFAULT_PASSWORD}  ${DEFAULT_PASSWORD}   Error: new password cannot be the same as old one
+5VC, Not matched        ${DEFAULT_PASSWORD}  Ea51                 Ea15                  Error: confirmed password does not match new password
+6VC, All letters        ${DEFAULT_PASSWORD}  qwert                qwert                 Error: new password must contain at least one number
+7VC, All numbers        ${DEFAULT_PASSWORD}  12345                12345                 Error: new password must contain at least one capital letter
+8VC, Three Char New     ${DEFAULT_PASSWORD}  12W                  12W                   Error: new password must have 4-8 characters
+9VC, Nine Char          ${DEFAULT_PASSWORD}  Qwer+!d5s            Qwer+!d5s             Error: new password must have 4-8 characters
+10VC, Empty Confirm      ${DEFAULT_PASSWORD}  Earth151             ${EMPTY}              Error: Enter confirm password
+11VC, Empty New         ${DEFAULT_PASSWORD}  ${EMPTY}             Earth151              Error: Enter new password
+12VC, Empty Both        ${DEFAULT_PASSWORD}  ${EMPTY}             ${EMPTY}              Error: Enter new password
+13Empty Current         ${EMPTY}             Earth15              Earth15               Error: Enter current password
+14IC, VN                1234qwe              Earth151             Earth151              Error: incorrect current password
+15Current Space         ${SPACE}             Earth151             Earth151              Error: incorrect current password
+16VC, New Space         ${DEFAULT_PASSWORD}  ${SPACE*7}           Earth151              Error: confirmed password does not match new password
+17VC, New Space         ${DEFAULT_PASSWORD}  Earth151             ${SPACE*7}            Error: confirmed password does not match new password
+18VC, Space New         ${DEFAULT_PASSWORD}  ${SPACE*7}           ${SPACE*7}            Error: new password must contain at least one capital letter
+
+*** Keywords ***
+Passwords Combinations
+    [Arguments]     ${current_password}     ${new_password}     ${confirm_password}     ${expected_message}
+    Maximize Browser Window
+    Input Text      name:cur_password       ${current_password}
+    Input Text      name:new_password       ${new_password}
+    Input Text      name:confirm_password   ${confirm_password}
+    Click Element   name:submit
+    Wait Until Element Is Visible             xpath://body/div[2]       5s
+    ${actual_message}=        Get Text        xpath://body/div[2]
+    Should Be Equal As Strings      ${actual_message}      ${expected_message}
